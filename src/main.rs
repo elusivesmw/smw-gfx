@@ -12,8 +12,8 @@ fn main() {
 }
 
 const SIZE: usize = 32; // 4bpp = 32 bytes per 8x8
-fn bin_to_4bpp(bin: &Vec<u8>) -> Vec<Vec<u8>> {
-    let mut tiles: Vec<Vec<u8>> = Vec::new();
+fn bin_to_4bpp(bin: &Vec<u8>) -> Vec<Tile> {
+    let mut tiles: Vec<Tile> = Vec::new();
     for (i, _val) in bin.iter().enumerate().step_by(SIZE) {
         let slice = &bin[i..i+SIZE];
         let tile = slice_to_tile(&slice);
@@ -21,11 +21,34 @@ fn bin_to_4bpp(bin: &Vec<u8>) -> Vec<Vec<u8>> {
         //print_tile(&tile);
         tiles.push(tile);
     }
+    //let test = tiles[0].get(0,0);
+    //tiles[0].set(0, 0, test + 1);
     tiles
 }
 
-fn slice_to_tile(slice: &[u8]) -> Vec<u8> {
-    let mut tile = Vec::new();
+struct Tile {
+    //format: 
+    pixels: Vec<u8>,
+}
+
+impl Tile {
+    fn new() -> Self {
+        Self {
+            pixels: Vec::new()
+        }
+    }
+
+    fn get(&self, x: usize, y: usize) -> u8 {
+        self.pixels[y * 8 + x]
+    }
+
+    fn set(&mut self, x: usize, y: usize, val: u8) {
+        self.pixels[y * 8 + x] = val;
+    }
+}
+
+fn slice_to_tile(slice: &[u8]) -> Tile {
+    let mut tile = Tile::new();
 
     for r in 0..8 {
         let r = r * 2;
@@ -38,7 +61,7 @@ fn slice_to_tile(slice: &[u8]) -> Vec<u8> {
         // translate to an array of colors for this row
         for c in (0..8).rev() {
             let palette = get_pixel_color(c, bp1, bp2, bp3, bp4);
-            tile.push(palette);
+            tile.pixels.push(palette);
         }
     }
 
@@ -77,16 +100,19 @@ fn print_tile(tile: &Vec<u8>) {
 }
 
 
-fn print_4bpp(converted: &Vec<Vec<u8>>) {
-    let num_rows = converted.iter().len() / 16; // tiles per row
-    for tri in 0..num_rows {
-        let tr = &converted[tri*16..tri*16 + 16]; // tiles per row
-        for pri in 0..8 {
-            for ti in 0..16 {
-                let tile = &tr[ti];
-                for pi in 0..8 {
-                    let p = &tile[pri * 8 + pi];
-                    print!("{}", p);
+fn print_4bpp(converted: &Vec<Tile>) {
+    let tiles_per_row = 16;
+    let num_rows = converted.iter().len() / tiles_per_row;
+    for row in 0..num_rows {
+        let row_start = row * tiles_per_row;
+        let row_end = row_start + tiles_per_row;
+        let ry = &converted[row_start..row_end];
+        for py in 0..8 {
+            for tx in 0..16 {
+                let tile = &ry[tx];
+                for px in 0..8 {
+                    let p = &tile.get(px, py);
+                    print!("{:x?}{:x?}", p, p);
                 }
                 print!(" ");
             }
@@ -95,11 +121,3 @@ fn print_4bpp(converted: &Vec<Vec<u8>>) {
     }
 }
 
-/*
-fn u8_to_u4s (byte: u8) -> (u8, u8) {
-    let msbs = (byte & 0xf0) >> 4;
-    let lsbs = byte & 0x0f;
-    //println!("in {} = {},{}", byte, msbs, lsbs);
-    (msbs, lsbs)
-}
-*/
