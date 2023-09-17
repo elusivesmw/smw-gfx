@@ -1,13 +1,19 @@
-use std::{env, fs};
+use std::{env, fs, process};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let config = Config::new(args);
+    let config = Config::build(&args).unwrap_or_else(|err| {
+        println!("Arguments parse error: {err}");
+        process::exit(1);
+    });
 
     println!("Reading bin file...");
     let path = &config.file;
     let format = &config.format;
-    let bin = fs::read(path).unwrap();
+    let bin = fs::read(path).unwrap_or_else(|err| {
+        println!("File read error: {err}");
+        process::exit(1);
+    });
     //print_first_bits(&bin);
 
     let converted = bin_to_tiles(&bin, format.clone());
@@ -20,17 +26,14 @@ struct Config {
 }
 
 impl Config {
-    fn new(args: Vec<String>) -> Config {
+    fn build(args: &[String]) -> Result<Config, &'static str> {
         if args.len() < 3 {
-            panic!("Expected file and format arguments");
+            return Err("Expected file and format arguments");
         }
         let file = args[1].clone();
-        let format = Bpp::new(args[2].clone()).unwrap();
+        let format = Bpp::new(args[2].clone())?;
 
-        Config {
-            file,
-            format,
-        }
+        Ok(Config { file, format })
     }
 }
 
@@ -63,14 +66,14 @@ enum Bpp {
 }
 
 impl Bpp {
-    fn new(format: String) -> Option<Bpp> {
-        let format: u8 = format.parse().unwrap();
+    fn new(format: String) -> Result<Bpp, &'static str> {
+        let format: u8 = format.parse().unwrap_or_default();
         match format {
-            1 => { Some(Bpp::_1bpp) }
-            2 => { Some(Bpp::_2bpp) }
-            3 => { Some(Bpp::_3bpp) }
-            4 => { Some(Bpp::_4bpp) }
-            _ => { None }
+            1 => { Ok(Bpp::_1bpp) }
+            2 => { Ok(Bpp::_2bpp) }
+            3 => { Ok(Bpp::_3bpp) }
+            4 => { Ok(Bpp::_4bpp) }
+            _ => { return Err("Unsupported bpp format"); }
         }
     }
 
