@@ -1,15 +1,40 @@
-use std::fs;
+use std::{env, fs};
 
 fn main() {
-    println!("Reading bin file...");
+    let args: Vec<String> = env::args().collect();
+    let config = Config::new(args);
 
-    let path = "./in/GFX00.bin";
+    println!("Reading bin file...");
+    let path = &config.file;
+    let format = &config.format;
     let bin = fs::read(path).unwrap();
     //print_first_bits(&bin);
 
-    let converted = bin_to_tiles(&bin, Bpp::_4bpp);
+    let converted = bin_to_tiles(&bin, format.clone());
     print_4bpp(&converted);
 }
+
+struct Config {
+    file: String,
+    format: Bpp,
+}
+
+impl Config {
+    fn new(args: Vec<String>) -> Config {
+        if args.len() < 3 {
+            panic!("Expected file and format arguments");
+        }
+        let file = args[1].clone();
+        let format = Bpp::new(args[2].clone()).unwrap();
+
+        Config {
+            file,
+            format,
+        }
+    }
+}
+
+
 
 fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
     let bytes_per_8x8 = format.bytes_per_8x8();
@@ -38,6 +63,17 @@ enum Bpp {
 }
 
 impl Bpp {
+    fn new(format: String) -> Option<Bpp> {
+        let format: u8 = format.parse().unwrap();
+        match format {
+            1 => { Some(Bpp::_1bpp) }
+            2 => { Some(Bpp::_2bpp) }
+            3 => { Some(Bpp::_3bpp) }
+            4 => { Some(Bpp::_4bpp) }
+            _ => { None }
+        }
+    }
+
     fn val (&self) -> u8 {
         match self {
             Bpp::_1bpp => { Bpp::_1bpp as u8 }
@@ -156,7 +192,7 @@ fn print_4bpp(converted: &Vec<Tile>) {
         let row_end = row_start + tiles_per_row;
         let ry = &converted[row_start..row_end];
         for py in 0..8 {
-            for tx in 0..16 {
+            for tx in 0..tiles_per_row {
                 let tile = &ry[tx];
                 for px in 0..8 {
                     let p = &tile.get(px, py);
