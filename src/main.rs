@@ -1,4 +1,4 @@
-use std::{env, fs, process};
+use std::{env, error::Error, fs, process};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -7,17 +7,10 @@ fn main() {
         process::exit(1);
     });
 
-    println!("Reading bin file...");
-    let path = &config.file;
-    let format = &config.format;
-    let bin = fs::read(path).unwrap_or_else(|err| {
-        println!("File read error: {err}");
+    if let Err(err) = run(config) {
+        println!("Error: {err}");
         process::exit(1);
-    });
-    //print_first_bits(&bin);
-
-    let converted = bin_to_tiles(&bin, format.clone());
-    print_4bpp(&converted);
+    }
 }
 
 struct Config {
@@ -37,6 +30,19 @@ impl Config {
     }
 }
 
+
+fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    println!("Reading bin file...");
+    let path = config.file;
+    let format = config.format;
+    let bin = fs::read(path)?;
+    //print_first_bits(&bin);
+
+    let converted = bin_to_tiles(&bin, format.clone());
+    print_4bpp(&converted);
+
+    Ok(())
+}
 
 
 fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
