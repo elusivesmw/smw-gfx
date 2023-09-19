@@ -193,7 +193,7 @@ fn print_4bpp(converted: &Vec<Tile>) {
                 let tile = &ry[tx];
                 for px in 0..8 {
                     let p = &tile.get(px, py);
-                    print!("{:x?}{:x?}", p, p);
+                    palette_to_color(p);
                 }
                 print!(" ");
             }
@@ -202,3 +202,22 @@ fn print_4bpp(converted: &Vec<Tile>) {
     }
 }
 
+fn palette_to_color(p: &u8) {
+    // ANSI colors
+    // 0 blue (for transparency)
+    // 1 white
+    // 2->7 black->lightgrey
+    match p {
+        0 => { print!("\x1b[48;5;{}m{}{}", 18, p, p); }
+        1 => { print!("\x1b[48;5;{}m\x1b[38;5;{}m{}{}", 255, 232, p, p); }
+        2 => { print!("\x1b[48;5;{}m{}{}", 232, p, p); }
+        3 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
+        4 => { print!("\x1b[48;5;{}m{}{}", 246, p, p); }
+        5 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
+        6 => { print!("\x1b[48;5;{}m{}{}", 249, p, p); }
+        7 => { print!("\x1b[48;5;{}m{}{}", 252, p, p); }
+        _ => { print!("{}{}", p, p); }
+    }
+    // reset colors
+    print!("\x1b[0m");
+}
