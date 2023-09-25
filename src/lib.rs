@@ -3,13 +3,13 @@ use std::error::Error;
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    println!("reading bin file...");
+    println!("Reading bin file...");
     let path = config.file;
     let format = config.format;
     let bin = fs::read(path)?;
 
-    let converted = tile::bin_to_tiles(&bin, format.clone());
-    tile::print_tiles(&converted);
+    let tiles = tile::bin_to_tiles(&bin, format.clone());
+    tile::print_tiles(&tiles);
 
     Ok(())
 }

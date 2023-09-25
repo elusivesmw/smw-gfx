@@ -1,22 +1,17 @@
-pub struct Tile {
-    bpp: Bpp,
-    data: Vec<u8>,
+pub type Tile = Vec<u8>;
+
+pub trait TileExt {
+    fn get(&self, x: usize, y: usize) -> u8;
+    fn set(&mut self, x: usize, y: usize, val: u8);
 }
 
-impl Tile {
-    pub fn new(bpp: Bpp) -> Self {
-        Self {
-            bpp,
-            data: Vec::new(),
-        }
-    }
-
+impl TileExt for Tile {
     fn get(&self, x: usize, y: usize) -> u8 {
-        self.data[y * 8 + x]
+        self[y * 8 + x]
     }
 
     fn set(&mut self, x: usize, y: usize, val: u8) {
-        self.data[y * 8 + x] = val;
+        self[y * 8 + x] = val;
     }
 }
 
@@ -36,7 +31,7 @@ impl Bpp {
             2 => { Ok(Bpp::_2bpp) }
             3 => { Ok(Bpp::_3bpp) }
             4 => { Ok(Bpp::_4bpp) }
-            _ => { return Err("Unsupported bpp format"); }
+            _ => { Err("Unsupported bpp format") }
         }
     }
 
@@ -70,7 +65,7 @@ pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
 }
 
 pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
-    let mut tile = Tile::new(bpp);
+    let mut tile = Tile::new();
     let mut bp1;
     let mut bp2 = 0;
     let mut bp3 = 0;
@@ -103,7 +98,7 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
         // translate to an array of palettes for this row
         for c in (0..8).rev() {
             let palette = get_pixel_palette(c, bp1, bp2, bp3, bp4);
-            tile.data.push(palette);
+            tile.push(palette);
         }
     }
 
@@ -124,13 +119,13 @@ fn get_pixel_palette (c: u8, bp1: u8, bp2: u8 , bp3: u8, bp4: u8) -> u8 {
     palette
 }
 
-pub fn print_tiles(converted: &Vec<Tile>) {
+pub fn print_tiles(tiles: &Vec<Tile>) {
     let tiles_per_row = 16;
-    let num_rows = converted.iter().len() / tiles_per_row;
+    let num_rows = tiles.iter().len() / tiles_per_row;
     for row in 0..num_rows {
         let row_start = row * tiles_per_row;
         let row_end = row_start + tiles_per_row;
-        let ry = &converted[row_start..row_end];
+        let ry = &tiles[row_start..row_end];
         for py in 0..8 {
             for tx in 0..tiles_per_row {
                 let tile = &ry[tx];
