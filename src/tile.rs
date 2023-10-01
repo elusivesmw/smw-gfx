@@ -58,6 +58,7 @@ pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
 
         //print_tile(&tile);
         tiles.push(tile);
+        println!("{:02X?}", chunk);
     }
     //let test = tiles[0].get(0,0);
     //tiles[0].set(0, 0, test + 1);
@@ -119,16 +120,10 @@ fn get_pixel_palette (c: u8, bp1: u8, bp2: u8 , bp3: u8, bp4: u8) -> u8 {
     palette
 }
 
-pub fn print_tiles(tiles: &Vec<Tile>) {
-    let tiles_per_row = 16;
-    let num_rows = tiles.iter().len() / tiles_per_row;
-    for row in 0..num_rows {
-        let row_start = row * tiles_per_row;
-        let row_end = row_start + tiles_per_row;
-        let ry = &tiles[row_start..row_end];
+pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
+    for row in tiles.chunks(tiles_per_row) {
         for py in 0..8 {
-            for tx in 0..tiles_per_row {
-                let tile = &ry[tx];
+            for tile in row.iter() {
                 for px in 0..8 {
                     let p = &tile.get(px, py);
                     palette_to_color(p);

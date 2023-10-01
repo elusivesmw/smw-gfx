@@ -9,7 +9,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let bin = fs::read(path)?;
 
     let tiles = tile::bin_to_tiles(&bin, format.clone());
-    tile::print_tiles(&tiles);
+    tile::print_tiles(&tiles, 16);
 
     Ok(())
 }
