@@ -15,6 +15,58 @@ impl TileExt for Tile {
     }
 }
 
+pub type Tiles = Vec<Tile>;
+pub trait TilesExt {
+    fn to_file(&self, format: Bpp) -> Vec<u8>;
+}
+
+impl TilesExt for Tiles {
+    fn to_file(&self, format: Bpp) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
+        for tile in self {
+            let tile_file_bytes = tile_to_file(tile, format);
+            println!("{:02X?}", tile_file_bytes);
+            bytes.extend(tile_file_bytes);
+        }
+
+        bytes
+    }
+}
+
+fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
+    let bytes_per_8x8 = format.bytes_per_8x8(); // 32
+    let mut tile_file_bytes = vec![0u8; bytes_per_8x8];
+    let pixels_per_tile_row = 8;
+
+    for (r, row) in tile.chunks(pixels_per_tile_row).enumerate() {
+        let mut row_bp1 = 0;
+        let mut row_bp2 = 0;
+        let mut row_bp3 = 0;
+        let mut row_bp4 = 0;
+
+        println!("{:?}", row);
+
+        for (c, px) in row.iter().enumerate() {
+            let mask = 1 << c;
+            //println!("c: {:?}, mask: {:?}, {:?}", c, mask, px);
+            row_bp1 |= if px & 1 == 1 { mask } else { 0 };
+            row_bp2 |= if px & 2 == 2 { mask } else { 0 };
+            row_bp3 |= if px & 4 == 4 { mask } else { 0 };
+            row_bp4 |= if px & 8 == 8 { mask } else { 0 };
+        }
+        println!("{:?}", (row_bp1, row_bp2, row_bp3, row_bp4));
+
+        // bpp4
+        tile_file_bytes[r*2 + 0] = row_bp1;
+        tile_file_bytes[r*2 + 1] = row_bp2;
+        tile_file_bytes[r*2 + 16] = row_bp3;
+        tile_file_bytes[r*2 + 17] = row_bp4;
+
+    }
+
+    tile_file_bytes
+}
+
 #[derive(Debug,Copy,Clone)]
 pub enum Bpp {
     _1bpp = 1,
