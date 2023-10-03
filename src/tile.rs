@@ -25,7 +25,7 @@ impl TilesExt for Tiles {
         let mut bytes: Vec<u8> = Vec::new();
         for tile in self {
             let tile_file_bytes = tile_to_file(tile, format);
-            println!("{:02X?}", tile_file_bytes);
+            //println!("{:02X?}", tile_file_bytes);
             bytes.extend(tile_file_bytes);
         }
 
@@ -39,33 +39,63 @@ fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
     let pixels_per_tile_row = 8;
 
     for (r, row) in tile.chunks(pixels_per_tile_row).enumerate() {
-        let mut row_bp1 = 0;
-        let mut row_bp2 = 0;
-        let mut row_bp3 = 0;
-        let mut row_bp4 = 0;
+        let mut row_bps = (0, 0, 0, 0);
+        //println!("{:?}", row);
 
-        println!("{:?}", row);
-
-        for (c, px) in row.iter().enumerate() {
-            let mask = 1 << c;
-            //println!("c: {:?}, mask: {:?}, {:?}", c, mask, px);
-            row_bp1 |= if px & 1 == 1 { mask } else { 0 };
-            row_bp2 |= if px & 2 == 2 { mask } else { 0 };
-            row_bp3 |= if px & 4 == 4 { mask } else { 0 };
-            row_bp4 |= if px & 8 == 8 { mask } else { 0 };
+        for (c, px) in row.iter().rev().enumerate() {
+            let px_bps = get_pixel_bitplanes(px, c, format);
+            row_bps.0 |= px_bps.0;
+            row_bps.1 |= px_bps.1;
+            row_bps.2 |= px_bps.2;
+            row_bps.3 |= px_bps.3;
         }
-        println!("{:?}", (row_bp1, row_bp2, row_bp3, row_bp4));
+        //println!("{:?}", (row_bps.0, row_bps.1, row_bps.2, row_bps.3));
 
         // bpp4
-        tile_file_bytes[r*2 + 0] = row_bp1;
-        tile_file_bytes[r*2 + 1] = row_bp2;
-        tile_file_bytes[r*2 + 16] = row_bp3;
-        tile_file_bytes[r*2 + 17] = row_bp4;
+        tile_file_bytes[r*2 + 0] = row_bps.0;
+        tile_file_bytes[r*2 + 1] = row_bps.1;
+        tile_file_bytes[r*2 + 16] = row_bps.2;
+        tile_file_bytes[r*2 + 17] = row_bps.3;
 
     }
 
     tile_file_bytes
 }
+
+fn get_pixel_bitplanes(px: &u8, c: usize, format: Bpp) -> (u8, u8, u8, u8) {
+    // px value should be less than the bpp format max value
+    //let max_bpp_val = 2u8.pow(format.val() as u32);
+    let max_bpp_val = format.val() << 1;
+    //println!("max: {}  {}", format.val(), max_bpp_val);
+    assert!(px < &max_bpp_val);
+
+    let mut px_bp1 = 0;
+    let mut px_bp2 = 0;
+    let mut px_bp3 = 0;
+    let mut px_bp4 = 0;
+
+    let mask = 1 << c;
+    //println!("c: {:?}, mask: {:?}, {:?}", c, mask, px);
+    match format {
+        Bpp::_1bpp => {
+            (0, 0, 0, 0)
+        }
+        Bpp::_2bpp => {
+            (0, 0, 0, 0)
+        }
+        Bpp::_3bpp => {
+            (0, 0, 0, 0)
+        }
+        Bpp::_4bpp => {
+            px_bp1 |= if px & 1 == 1 { mask } else { 0 };
+            px_bp2 |= if px & 2 == 2 { mask } else { 0 };
+            px_bp3 |= if px & 4 == 4 { mask } else { 0 };
+            px_bp4 |= if px & 8 == 8 { mask } else { 0 };
+            (px_bp1, px_bp2, px_bp3, px_bp4)
+        }
+    }
+}
+
 
 #[derive(Debug,Copy,Clone)]
 pub enum Bpp {
@@ -110,7 +140,7 @@ pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
 
         //print_tile(&tile);
         tiles.push(tile);
-        println!("{:02X?}", chunk);
+        //println!("{:02X?}", chunk);
     }
     //let test = tiles[0].get(0,0);
     //tiles[0].set(0, 0, test + 1);
