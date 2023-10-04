@@ -51,12 +51,26 @@ fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
         }
         //println!("{:?}", (row_bps.0, row_bps.1, row_bps.2, row_bps.3));
 
-        // bpp4
-        tile_file_bytes[r*2 + 0] = row_bps.0;
-        tile_file_bytes[r*2 + 1] = row_bps.1;
-        tile_file_bytes[r*2 + 16] = row_bps.2;
-        tile_file_bytes[r*2 + 17] = row_bps.3;
-
+        match format {
+            Bpp::_1bpp => {
+                tile_file_bytes[r] = row_bps.0;
+            }
+            Bpp::_2bpp => {
+                tile_file_bytes[r*2 + 0] = row_bps.0;
+                tile_file_bytes[r*2 + 1] = row_bps.1;
+            }
+            Bpp::_3bpp => {
+                tile_file_bytes[r*2 + 0] = row_bps.0;
+                tile_file_bytes[r*2 + 1] = row_bps.1;
+                tile_file_bytes[16 + r] = row_bps.2;
+            }
+            Bpp::_4bpp => {
+                tile_file_bytes[r*2 + 0] = row_bps.0;
+                tile_file_bytes[r*2 + 1] = row_bps.1;
+                tile_file_bytes[r*2 + 16] = row_bps.2;
+                tile_file_bytes[r*2 + 17] = row_bps.3;
+            }
+        }
     }
 
     tile_file_bytes
@@ -76,24 +90,12 @@ fn get_pixel_bitplanes(px: &u8, c: usize, format: Bpp) -> (u8, u8, u8, u8) {
 
     let mask = 1 << c;
     //println!("c: {:?}, mask: {:?}, {:?}", c, mask, px);
-    match format {
-        Bpp::_1bpp => {
-            (0, 0, 0, 0)
-        }
-        Bpp::_2bpp => {
-            (0, 0, 0, 0)
-        }
-        Bpp::_3bpp => {
-            (0, 0, 0, 0)
-        }
-        Bpp::_4bpp => {
-            px_bp1 |= if px & 1 == 1 { mask } else { 0 };
-            px_bp2 |= if px & 2 == 2 { mask } else { 0 };
-            px_bp3 |= if px & 4 == 4 { mask } else { 0 };
-            px_bp4 |= if px & 8 == 8 { mask } else { 0 };
-            (px_bp1, px_bp2, px_bp3, px_bp4)
-        }
-    }
+    px_bp1 |= if px & 1 == 1 { mask } else { 0 };
+    px_bp2 |= if px & 2 == 2 { mask } else { 0 };
+    px_bp3 |= if px & 4 == 4 { mask } else { 0 };
+    px_bp4 |= if px & 8 == 8 { mask } else { 0 };
+
+    (px_bp1, px_bp2, px_bp3, px_bp4)
 }
 
 
