@@ -78,10 +78,8 @@ fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
 
 fn get_pixel_bitplanes(px: &u8, c: usize, format: Bpp) -> (u8, u8, u8, u8) {
     // px value should be less than the bpp format max value
-    //let max_bpp_val = 2u8.pow(format.val() as u32);
-    let max_bpp_val = format.val() << 1;
-    //println!("max: {}  {}", format.val(), max_bpp_val);
-    assert!(px < &max_bpp_val);
+    let max_bpp_val = 1 << format.val();
+    assert!(px < &max_bpp_val, "px: {}, max: {}", px, &max_bpp_val);
 
     let mut px_bp1 = 0;
     let mut px_bp2 = 0;
@@ -233,7 +231,7 @@ fn palette_to_color(p: &u8) {
         5 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
         6 => { print!("\x1b[48;5;{}m{}{}", 249, p, p); }
         7 => { print!("\x1b[48;5;{}m{}{}", 252, p, p); }
-        _ => { print!("{}{}", p, p); }
+        _ => { print!("{:x}{:x}", p, p); }
     }
     // reset colors
     print!("\x1b[0m");
