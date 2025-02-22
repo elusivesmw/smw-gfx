@@ -1,3 +1,5 @@
+use image::{self, ImageBuffer, ImageFormat, Rgb};
+
 pub type Tile = Vec<u8>;
 
 pub trait TileExt {
@@ -56,19 +58,19 @@ fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
                 tile_file_bytes[r] = row_bps.0;
             }
             Bpp::_2bpp => {
-                tile_file_bytes[r*2 + 0] = row_bps.0;
-                tile_file_bytes[r*2 + 1] = row_bps.1;
+                tile_file_bytes[r * 2 + 0] = row_bps.0;
+                tile_file_bytes[r * 2 + 1] = row_bps.1;
             }
             Bpp::_3bpp => {
-                tile_file_bytes[r*2 + 0] = row_bps.0;
-                tile_file_bytes[r*2 + 1] = row_bps.1;
+                tile_file_bytes[r * 2 + 0] = row_bps.0;
+                tile_file_bytes[r * 2 + 1] = row_bps.1;
                 tile_file_bytes[16 + r] = row_bps.2;
             }
             Bpp::_4bpp => {
-                tile_file_bytes[r*2 + 0] = row_bps.0;
-                tile_file_bytes[r*2 + 1] = row_bps.1;
-                tile_file_bytes[r*2 + 16] = row_bps.2;
-                tile_file_bytes[r*2 + 17] = row_bps.3;
+                tile_file_bytes[r * 2 + 0] = row_bps.0;
+                tile_file_bytes[r * 2 + 1] = row_bps.1;
+                tile_file_bytes[r * 2 + 16] = row_bps.2;
+                tile_file_bytes[r * 2 + 17] = row_bps.3;
             }
         }
     }
@@ -96,8 +98,7 @@ fn get_pixel_bitplanes(px: &u8, c: usize, format: Bpp) -> (u8, u8, u8, u8) {
     (px_bp1, px_bp2, px_bp3, px_bp4)
 }
 
-
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Bpp {
     _1bpp = 1,
     _2bpp = 2,
@@ -109,20 +110,20 @@ impl Bpp {
     pub fn new(format: String) -> Result<Bpp, &'static str> {
         let format: u8 = format.parse().unwrap_or_default();
         match format {
-            1 => { Ok(Bpp::_1bpp) }
-            2 => { Ok(Bpp::_2bpp) }
-            3 => { Ok(Bpp::_3bpp) }
-            4 => { Ok(Bpp::_4bpp) }
-            _ => { Err("Unsupported bpp format") }
+            1 => Ok(Bpp::_1bpp),
+            2 => Ok(Bpp::_2bpp),
+            3 => Ok(Bpp::_3bpp),
+            4 => Ok(Bpp::_4bpp),
+            _ => Err("Unsupported bpp format"),
         }
     }
 
-    fn val (&self) -> u8 {
+    fn val(&self) -> u8 {
         match self {
-            Bpp::_1bpp => { Bpp::_1bpp as u8 }
-            Bpp::_2bpp => { Bpp::_2bpp as u8 }
-            Bpp::_3bpp => { Bpp::_3bpp as u8 }
-            Bpp::_4bpp => { Bpp::_4bpp as u8 }
+            Bpp::_1bpp => Bpp::_1bpp as u8,
+            Bpp::_2bpp => Bpp::_2bpp as u8,
+            Bpp::_3bpp => Bpp::_3bpp as u8,
+            Bpp::_4bpp => Bpp::_4bpp as u8,
         }
     }
 
@@ -135,7 +136,10 @@ pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
     let size = format.bytes_per_8x8();
     let mut tiles: Vec<Tile> = Vec::new();
     for chunk in bin.chunks(size) {
-        if chunk.len() < size { println!("Warning: Unexpected file length"); break; }
+        if chunk.len() < size {
+            println!("Warning: Unexpected file length");
+            break;
+        }
         let tile = chunk_to_tile(&chunk, format);
 
         //print_tile(&tile);
@@ -165,8 +169,8 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
                 bp2 = chunk[r + 1];
             }
             Bpp::_3bpp => {
-                bp1 = chunk[r*2 + 0];
-                bp2 = chunk[r*2 + 1];
+                bp1 = chunk[r * 2 + 0];
+                bp2 = chunk[r * 2 + 1];
                 bp3 = chunk[16 + r];
             }
             Bpp::_4bpp => {
@@ -189,7 +193,7 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
 }
 
 /// Gets a palette for a pixel at in column `c` with bitplanes 1-4
-fn get_pixel_palette (c: u8, bp1: u8, bp2: u8 , bp3: u8, bp4: u8) -> u8 {
+fn get_pixel_palette(c: u8, bp1: u8, bp2: u8, bp3: u8, bp4: u8) -> u8 {
     let mask = 1 << c;
 
     let px_bp1 = if (bp1 & mask) == mask { 1 } else { 0 };
@@ -217,23 +221,47 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
     }
 }
 
+pub fn write_to_file(tiles: &Vec<Tile>) {
+    let flattened: Vec<u8> = tiles.iter().flatten().copied().collect();
+    let image_buf = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_raw(16, 16, flattened)
+        .expect("Failed to create image buffer");
+    image_buf.save("output.png").expect("Failed to save image");
+}
+
 fn palette_to_color(p: &u8) {
     // ANSI colors
     // 0 blue (for transparency)
     // 1 white
     // 2->7 black->lightgrey
     match p {
-        0 => { print!("\x1b[48;5;{}m{}{}", 18, p, p); }
-        1 => { print!("\x1b[48;5;{}m\x1b[38;5;{}m{}{}", 255, 232, p, p); }
-        2 => { print!("\x1b[48;5;{}m{}{}", 232, p, p); }
-        3 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
-        4 => { print!("\x1b[48;5;{}m{}{}", 246, p, p); }
-        5 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
-        6 => { print!("\x1b[48;5;{}m{}{}", 249, p, p); }
-        7 => { print!("\x1b[48;5;{}m{}{}", 252, p, p); }
-        _ => { print!("{:x}{:x}", p, p); }
+        0 => {
+            print!("\x1b[48;5;{}m{}{}", 18, p, p);
+        }
+        1 => {
+            print!("\x1b[48;5;{}m\x1b[38;5;{}m{}{}", 255, 232, p, p);
+        }
+        2 => {
+            print!("\x1b[48;5;{}m{}{}", 232, p, p);
+        }
+        3 => {
+            print!("\x1b[48;5;{}m{}{}", 243, p, p);
+        }
+        4 => {
+            print!("\x1b[48;5;{}m{}{}", 246, p, p);
+        }
+        5 => {
+            print!("\x1b[48;5;{}m{}{}", 243, p, p);
+        }
+        6 => {
+            print!("\x1b[48;5;{}m{}{}", 249, p, p);
+        }
+        7 => {
+            print!("\x1b[48;5;{}m{}{}", 252, p, p);
+        }
+        _ => {
+            print!("{:x}{:x}", p, p);
+        }
     }
     // reset colors
     print!("\x1b[0m");
 }
-

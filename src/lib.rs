@@ -1,5 +1,5 @@
-use std::fs;
 use std::error::Error;
+use std::fs;
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -10,12 +10,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let bin = fs::read(path)?;
 
     let tiles = tile::bin_to_tiles(&bin, format.clone());
-    tile::print_tiles(&tiles, 16);
+    //tile::print_tiles(&tiles, 16);
+    tile::write_to_file(&tiles);
 
     Ok(())
 }
-
-
 
 pub struct Config {
     file: String,
