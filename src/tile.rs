@@ -1,4 +1,4 @@
-use image::{self, ImageBuffer, ImageFormat, Rgb};
+use image::{self, ImageBuffer, Rgb};
 
 pub type Tile = Vec<u8>;
 
@@ -192,7 +192,7 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
     tile
 }
 
-/// Gets a palette for a pixel at in column `c` with bitplanes 1-4
+// Gets a palette for a pixel at in column `c` with bitplanes 1-4
 fn get_pixel_palette(c: u8, bp1: u8, bp2: u8, bp3: u8, bp4: u8) -> u8 {
     let mask = 1 << c;
 
@@ -212,7 +212,7 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
             for tile in row.iter() {
                 for px in 0..8 {
                     let p = &tile.get(px, py);
-                    palette_to_color(p);
+                    print_palette_to_ansi(p);
                 }
                 print!(" ");
             }
@@ -222,13 +222,19 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
 }
 
 pub fn write_to_file(tiles: &Vec<Tile>) {
+    println!("Writing image to file...");
     let flattened: Vec<u8> = tiles.iter().flatten().copied().collect();
     let image_buf = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_raw(16, 16, flattened)
         .expect("Failed to create image buffer");
     image_buf.save("output.png").expect("Failed to save image");
 }
 
-fn palette_to_color(p: &u8) {
+fn palette_to_rgb(p: u8) {
+    // TODO: take palette to Rgb color
+    // later, use an optional palette file
+}
+
+fn print_palette_to_ansi(p: &u8) {
     // ANSI colors
     // 0 blue (for transparency)
     // 1 white
