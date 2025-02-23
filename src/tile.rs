@@ -1,4 +1,4 @@
-use image::{self, ImageBuffer, Rgb};
+use image::{self, ImageBuffer, Rgba, RgbaImage};
 
 pub type Tile = Vec<u8>;
 
@@ -221,17 +221,74 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
     }
 }
 
+const TILE_PIXELS_WIDE: u32 = 16;
+const TILES_PER_ROW: u32 = 8;
+const PIXELS_PER_ROW: u32 = TILE_PIXELS_WIDE * TILES_PER_ROW;
+
 pub fn write_to_file(tiles: &Vec<Tile>) {
     println!("Writing image to file...");
     let flattened: Vec<u8> = tiles.iter().flatten().copied().collect();
-    let image_buf = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_raw(16, 16, flattened)
-        .expect("Failed to create image buffer");
-    image_buf.save("output.png").expect("Failed to save image");
+    let flattened_len: u32 = Result::expect(
+        flattened.len().try_into(),
+        "Could not convert usize into u32",
+    );
+    println!("flattened len: {}", flattened_len);
+
+    //let pixels =
+    let width = PIXELS_PER_ROW as u32;
+    let height = flattened_len / PIXELS_PER_ROW as u32;
+    println!("w: {}", width);
+    println!("h: {}", height);
+
+    let mut image = RgbaImage::new(width, height);
+
+    for (x, y, pixel) in image.enumerate_pixels_mut() {
+        let x8: usize = x.try_into().expect("x out of bounds");
+        let y8: usize = y.try_into().expect("y out of bounds");
+        let pos = y8 * PIXELS_PER_ROW as usize + x8;
+        println!("{} x {} + {} = pos: {}", y8, PIXELS_PER_ROW, x8, pos);
+        let op = flattened[pos];
+
+        let rbga_val = palette_to_rgb(op);
+        *pixel = rbga_val;
+    }
+    println!("image details: {}x{}", image.width(), image.height());
+
+    image.save("output.png").expect("Failed to save image");
 }
 
-fn palette_to_rgb(p: u8) {
-    // TODO: take palette to Rgb color
-    // later, use an optional palette file
+fn bpp_coordinates_to_file_coordinates(x: u32, y: u32) {}
+
+fn palette_to_rgb(p: u8) -> Rgba<u8> {
+    match p {
+        0 => {
+            return Rgba([0, 0, 255, 1]);
+        }
+        1 => {
+            return Rgba([255, 255, 255, 255]);
+        }
+        2 => {
+            return Rgba([212, 212, 212, 255]);
+        }
+        3 => {
+            return Rgba([170, 170, 170, 255]);
+        }
+        4 => {
+            return Rgba([127, 127, 127, 255]);
+        }
+        5 => {
+            return Rgba([85, 85, 85, 255]);
+        }
+        6 => {
+            return Rgba([42, 42, 42, 255]);
+        }
+        7 => {
+            return Rgba([0, 0, 0, 255]);
+        }
+        _ => {
+            return Rgba([255, 0, 0, 255]);
+        }
+    }
 }
 
 fn print_palette_to_ansi(p: &u8) {
