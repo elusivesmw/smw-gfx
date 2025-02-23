@@ -1,4 +1,4 @@
-use image::{self, Rgba, RgbaImage};
+use image::{self, GenericImageView, Rgba, RgbaImage};
 
 pub type Tile = Vec<u8>;
 
@@ -221,9 +221,11 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
     }
 }
 
-const TILE_PIXELS_WIDE: u32 = 8;
+const TILE_DIMENSIONS: u32 = 8;
+const TILE_PIXELS: u32 = TILE_DIMENSIONS * TILE_DIMENSIONS;
 const TILES_PER_ROW: u32 = 16;
-const PIXELS_PER_ROW: u32 = TILE_PIXELS_WIDE * TILES_PER_ROW;
+const PIXELS_PER_ROW: u32 = TILE_DIMENSIONS * TILES_PER_ROW;
+const PIXELS_PER_TILE_ROW: u32 = TILE_PIXELS * TILES_PER_ROW;
 
 pub fn write_to_file(tiles: &Vec<Tile>) {
     println!("Writing image to file...");
@@ -232,23 +234,38 @@ pub fn write_to_file(tiles: &Vec<Tile>) {
         flattened.len().try_into(),
         "Could not convert usize into u32",
     );
+
     println!("flattened len: {}", flattened_len);
+    // TODO: round up to the nearest row size
+    // pixels per row of tiles?...
+    println!(
+        "{} / {} = {}",
+        flattened_len,
+        TILE_PIXELS * TILES_PER_ROW,
+        flattened_len / (TILE_PIXELS * TILES_PER_ROW)
+    );
 
     //let pixels =
     let width = PIXELS_PER_ROW as u32;
-    let height = flattened_len / PIXELS_PER_ROW as u32;
+    let mut height = flattened_len / PIXELS_PER_ROW as u32;
+    let idk = flattened_len % PIXELS_PER_TILE_ROW;
+
+    if idk > 0 {
+        height += PIXELS_PER_TILE_ROW;
+    }
+
     println!("w: {}", width);
     println!("h: {}", height);
 
     let mut image = RgbaImage::new(width, height);
 
     for (i, tile) in tiles.iter().enumerate() {
-        let out_tile_00_y = (i as u32 / TILES_PER_ROW) * TILE_PIXELS_WIDE;
-        let out_tile_00_x = (i as u32 % TILES_PER_ROW) * TILE_PIXELS_WIDE;
+        let out_tile_00_y = (i as u32 / TILES_PER_ROW) * TILE_DIMENSIONS;
+        let out_tile_00_x = (i as u32 % TILES_PER_ROW) * TILE_DIMENSIONS;
 
         for (j, px) in tile.iter().enumerate() {
-            let out_y = out_tile_00_y + j as u32 / TILE_PIXELS_WIDE;
-            let out_x = out_tile_00_x + j as u32 % TILE_PIXELS_WIDE;
+            let out_y = out_tile_00_y + j as u32 / TILE_DIMENSIONS;
+            let out_x = out_tile_00_x + j as u32 % TILE_DIMENSIONS;
 
             println!(
                 "tile00x={},tile00y={}, x={}, y={}",
