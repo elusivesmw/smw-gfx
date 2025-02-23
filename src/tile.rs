@@ -1,4 +1,4 @@
-use image::{self, ImageBuffer, Rgba, RgbaImage};
+use image::{self, Rgba, RgbaImage};
 
 pub type Tile = Vec<u8>;
 
@@ -221,8 +221,8 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
     }
 }
 
-const TILE_PIXELS_WIDE: u32 = 16;
-const TILES_PER_ROW: u32 = 8;
+const TILE_PIXELS_WIDE: u32 = 8;
+const TILES_PER_ROW: u32 = 16;
 const PIXELS_PER_ROW: u32 = TILE_PIXELS_WIDE * TILES_PER_ROW;
 
 pub fn write_to_file(tiles: &Vec<Tile>) {
@@ -242,22 +242,28 @@ pub fn write_to_file(tiles: &Vec<Tile>) {
 
     let mut image = RgbaImage::new(width, height);
 
-    for (x, y, pixel) in image.enumerate_pixels_mut() {
-        let x8: usize = x.try_into().expect("x out of bounds");
-        let y8: usize = y.try_into().expect("y out of bounds");
-        let pos = y8 * PIXELS_PER_ROW as usize + x8;
-        println!("{} x {} + {} = pos: {}", y8, PIXELS_PER_ROW, x8, pos);
-        let op = flattened[pos];
+    for (i, tile) in tiles.iter().enumerate() {
+        let out_tile_00_y = (i as u32 / TILES_PER_ROW) * TILE_PIXELS_WIDE;
+        let out_tile_00_x = (i as u32 % TILES_PER_ROW) * TILE_PIXELS_WIDE;
 
-        let rbga_val = palette_to_rgb(op);
-        *pixel = rbga_val;
+        for (j, px) in tile.iter().enumerate() {
+            let out_y = out_tile_00_y + j as u32 / TILE_PIXELS_WIDE;
+            let out_x = out_tile_00_x + j as u32 % TILE_PIXELS_WIDE;
+
+            println!(
+                "tile00x={},tile00y={}, x={}, y={}",
+                out_tile_00_x, out_tile_00_y, out_x, out_y
+            );
+
+            let px_color = palette_to_rgb(*px);
+            image.put_pixel(out_x, out_y, px_color);
+        }
     }
+
     println!("image details: {}x{}", image.width(), image.height());
 
     image.save("output.png").expect("Failed to save image");
 }
-
-fn bpp_coordinates_to_file_coordinates(x: u32, y: u32) {}
 
 fn palette_to_rgb(p: u8) -> Rgba<u8> {
     match p {
