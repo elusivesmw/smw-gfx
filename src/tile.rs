@@ -224,7 +224,7 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
 const TILE_LENGTH: u32 = 8;
 const TILES_PER_ROW: u32 = 16;
 
-pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
+pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
     let pixels_per_row: u32 = TILE_LENGTH * TILES_PER_ROW * scale;
 
     println!("Writing image to file...");
@@ -234,13 +234,10 @@ pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
         "Could not convert usize into u32",
     );
 
-    println!("flattened len: {}", flattened_len);
-
     let mut height: u32 = flattened_len / (TILE_LENGTH * TILES_PER_ROW) * scale;
-
-    let partial_row = flattened_len % (TILE_LENGTH * TILES_PER_ROW);
+    let partial_row = flattened_len % (TILE_LENGTH * TILES_PER_ROW) * scale;
     if partial_row > 0 {
-        height += TILE_LENGTH * scale;
+        height += TILE_LENGTH * TILES_PER_ROW * scale;
     }
 
     let mut image = RgbaImage::new(pixels_per_row, height);
@@ -251,7 +248,6 @@ pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
         // get tile coordinates in output image
         let tile_y = (i as u32 / TILES_PER_ROW) * TILE_LENGTH * scale;
         let tile_x = (i as u32 % TILES_PER_ROW) * TILE_LENGTH * scale;
-        println!("{}, {}", tile_y, tile_x);
 
         // get pixels coordinates in output image
         for (j, pixel) in tile.iter().enumerate() {

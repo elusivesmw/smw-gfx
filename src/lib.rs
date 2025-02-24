@@ -9,7 +9,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let path = Path::new(&config.file);
     let format = config.format;
     let bin = fs::read(path)?;
-    let scale = 1;
+    let scale = 3;
 
     if let Some(filename) = path.file_stem() {
         let tiles = tile::bin_to_tiles(&bin, format.clone());
