@@ -221,13 +221,13 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
     }
 }
 
-const TILE_DIMENSIONS: u32 = 8;
-const TILE_PIXELS: u32 = TILE_DIMENSIONS * TILE_DIMENSIONS;
+const TILE_LENGTH: u32 = 8;
+const TILE_PIXELS: u32 = TILE_LENGTH * TILE_LENGTH;
 const TILES_PER_ROW: u32 = 16;
-const PIXELS_PER_ROW: u32 = TILE_DIMENSIONS * TILES_PER_ROW;
+const PIXELS_PER_ROW: u32 = TILE_LENGTH * TILES_PER_ROW;
 const PIXELS_PER_TILE_ROW: u32 = TILE_PIXELS * TILES_PER_ROW;
 
-pub fn write_to_file(tiles: &Vec<Tile>) {
+pub fn write_to_file(tiles: &Vec<Tile>, file_out: String) {
     println!("Writing image to file...");
     let flattened: Vec<u8> = tiles.iter().flatten().copied().collect();
     let flattened_len: u32 = Result::expect(
@@ -239,47 +239,37 @@ pub fn write_to_file(tiles: &Vec<Tile>) {
     // TODO: round up to the nearest row size
     // pixels per row of tiles?...
     println!(
-        "{} / {} = {}",
+        "{} % {} = {}",
         flattened_len,
         TILE_PIXELS * TILES_PER_ROW,
-        flattened_len / (TILE_PIXELS * TILES_PER_ROW)
+        flattened_len % (TILE_PIXELS * TILES_PER_ROW)
     );
 
-    //let pixels =
-    let width = PIXELS_PER_ROW as u32;
     let mut height = flattened_len / PIXELS_PER_ROW as u32;
-    let idk = flattened_len % PIXELS_PER_TILE_ROW;
-
-    if idk > 0 {
+    let partial_row = flattened_len % PIXELS_PER_TILE_ROW;
+    if partial_row > 0 {
         height += PIXELS_PER_TILE_ROW;
     }
 
-    println!("w: {}", width);
-    println!("h: {}", height);
+    let mut image = RgbaImage::new(PIXELS_PER_ROW, height);
+    println!("image details: {}x{}", image.width(), image.height());
 
-    let mut image = RgbaImage::new(width, height);
-
+    // fill in image pixels by tile
     for (i, tile) in tiles.iter().enumerate() {
-        let out_tile_00_y = (i as u32 / TILES_PER_ROW) * TILE_DIMENSIONS;
-        let out_tile_00_x = (i as u32 % TILES_PER_ROW) * TILE_DIMENSIONS;
+        // get tile coordinates in output image
+        let tile_y = (i as u32 / TILES_PER_ROW) * TILE_LENGTH;
+        let tile_x = (i as u32 % TILES_PER_ROW) * TILE_LENGTH;
 
-        for (j, px) in tile.iter().enumerate() {
-            let out_y = out_tile_00_y + j as u32 / TILE_DIMENSIONS;
-            let out_x = out_tile_00_x + j as u32 % TILE_DIMENSIONS;
-
-            println!(
-                "tile00x={},tile00y={}, x={}, y={}",
-                out_tile_00_x, out_tile_00_y, out_x, out_y
-            );
-
-            let px_color = palette_to_rgb(*px);
-            image.put_pixel(out_x, out_y, px_color);
+        // get pixels coordinates in output image
+        for (j, pixel) in tile.iter().enumerate() {
+            let pixel_y = tile_y + j as u32 / TILE_LENGTH;
+            let pixel_x = tile_x + j as u32 % TILE_LENGTH;
+            let px_color = palette_to_rgb(*pixel);
+            image.put_pixel(pixel_x, pixel_y, px_color);
         }
     }
 
-    println!("image details: {}x{}", image.width(), image.height());
-
-    image.save("output.png").expect("Failed to save image");
+    image.save(file_out).expect("Failed to save image");
 }
 
 fn palette_to_rgb(p: u8) -> Rgba<u8> {

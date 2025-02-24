@@ -1,17 +1,20 @@
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     println!("Reading bin file...");
 
-    let path = config.file;
+    let path = Path::new(&config.file);
     let format = config.format;
     let bin = fs::read(path)?;
 
-    let tiles = tile::bin_to_tiles(&bin, format.clone());
-    tile::print_tiles(&tiles, 8);
-    tile::write_to_file(&tiles);
+    if let Some(filename) = path.file_stem() {
+        let tiles = tile::bin_to_tiles(&bin, format.clone());
+        tile::print_tiles(&tiles, 8);
+        tile::write_to_file(&tiles, format!("{}.png", filename.to_string_lossy()));
+    };
 
     Ok(())
 }
