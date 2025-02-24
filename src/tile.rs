@@ -223,11 +223,9 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
 
 const TILE_LENGTH: u32 = 8;
 const TILES_PER_ROW: u32 = 16;
+
 pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
-    scale = 3;
-    let tile_pixels: u32 = TILE_LENGTH * TILE_LENGTH * scale;
     let pixels_per_row: u32 = TILE_LENGTH * TILES_PER_ROW * scale;
-    let pixels_per_tile_row: u32 = tile_pixels * TILES_PER_ROW;
 
     println!("Writing image to file...");
     let flattened: Vec<u8> = tiles.iter().flatten().copied().collect();
@@ -237,24 +235,12 @@ pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
     );
 
     println!("flattened len: {}", flattened_len);
-    // TODO: round up to the nearest row size
-    // pixels per row of tiles?...
-    println!(
-        "{} % {} = {}",
-        flattened_len,
-        tile_pixels * TILES_PER_ROW,
-        flattened_len % (tile_pixels * TILES_PER_ROW)
-    );
 
-    let mut height: u32 = flattened_len / (TILE_LENGTH * TILES_PER_ROW);
-    height *= scale;
-    println!(
-        "height: ({}*{}*{})/{}",
-        flattened_len, scale, scale, pixels_per_row
-    );
-    let partial_row = flattened_len % pixels_per_tile_row;
+    let mut height: u32 = flattened_len / (TILE_LENGTH * TILES_PER_ROW) * scale;
+
+    let partial_row = flattened_len % (TILE_LENGTH * TILES_PER_ROW);
     if partial_row > 0 {
-        height += pixels_per_tile_row;
+        height += TILE_LENGTH * scale;
     }
 
     let mut image = RgbaImage::new(pixels_per_row, height);
