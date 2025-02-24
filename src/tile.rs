@@ -224,7 +224,7 @@ pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
 const TILE_LENGTH: u32 = 8;
 const TILES_PER_ROW: u32 = 16;
 
-pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
+pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
     let pixels_per_row: u32 = TILE_LENGTH * TILES_PER_ROW * scale;
 
     println!("Writing image to file...");
@@ -236,10 +236,10 @@ pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, mut scale: u32) {
 
     println!("flattened len: {}", flattened_len);
 
-    let mut height: u32 = flattened_len / (TILE_LENGTH * TILES_PER_ROW) * scale;
+    let num_tiles = tiles.len() as u32;
+    let mut height: u32 = (num_tiles / TILES_PER_ROW) * TILE_LENGTH * scale;
 
-    let partial_row = flattened_len % (TILE_LENGTH * TILES_PER_ROW);
-    if partial_row > 0 {
+    if num_tiles % TILES_PER_ROW > 0 {
         height += TILE_LENGTH * scale;
     }
 
