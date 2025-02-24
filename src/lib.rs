@@ -9,11 +9,12 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let path = Path::new(&config.file);
     let format = config.format;
     let bin = fs::read(path)?;
+    let scale = 1;
 
     if let Some(filename) = path.file_stem() {
         let tiles = tile::bin_to_tiles(&bin, format.clone());
         tile::print_tiles(&tiles, 8);
-        tile::write_to_file(&tiles, format!("{}.png", filename.to_string_lossy()));
+        tile::write_to_file(&tiles, format!("{}.png", filename.to_string_lossy()), scale);
     };
 
     Ok(())
