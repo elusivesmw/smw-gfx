@@ -1,6 +1,8 @@
+use self::tile::Bpp;
 use std::error::Error;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -8,10 +10,34 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let path = Path::new(&config.file);
     let format = config.format;
-    let bin = fs::read(path)?;
     let scale = 3;
 
-    if let Some(filename) = path.file_stem() {
+    let paths = collect_paths(path)?;
+    for path in paths {
+        run_file(path.as_path(), format, scale)?;
+    }
+
+    Ok(())
+}
+
+fn collect_paths(path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    let mut paths = Vec::new();
+    if path.is_file() {
+        paths.push(path.to_path_buf());
+    } else if path.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            paths.push(entry.path());
+        }
+    };
+
+    Ok(paths)
+}
+
+fn run_file(file_path: &Path, format: Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
+    let bin = fs::read(file_path)?;
+
+    if let Some(filename) = file_path.file_stem() {
         let tiles = tile::bin_to_tiles(&bin, format.clone());
         tile::print_tiles(&tiles, 8);
         tile::write_to_file(&tiles, format!("{}.png", filename.to_string_lossy()), scale);
