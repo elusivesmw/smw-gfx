@@ -137,8 +137,8 @@ pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
     let mut tiles: Vec<Tile> = Vec::new();
     for chunk in bin.chunks(size) {
         if chunk.len() < size {
-            println!("Warning: Unexpected file length");
-            break;
+            println!("Warning: Unexpected file length.");
+            //break; // NOTE: handled in safe_chunk_index() now
         }
         let tile = chunk_to_tile(&chunk, format);
 
@@ -161,25 +161,24 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
     for r in 0..8 {
         match bpp {
             Bpp::_1bpp => {
-                bp1 = chunk[r];
+                bp1 = safe_chunk_index(chunk, r);
             }
             Bpp::_2bpp => {
                 let r = r * 2;
-                bp1 = chunk[r + 0];
-                bp2 = chunk[r + 1];
+                bp1 = safe_chunk_index(chunk, r + 0);
+                bp2 = safe_chunk_index(chunk, r + 1);
             }
             Bpp::_3bpp => {
-                bp1 = chunk[r * 2 + 0];
-                bp2 = chunk[r * 2 + 1];
-                bp3 = chunk[16 + r];
+                bp1 = safe_chunk_index(chunk, r * 2 + 0);
+                bp2 = safe_chunk_index(chunk, r * 2 + 1);
+                bp3 = safe_chunk_index(chunk, 16 + r);
             }
             Bpp::_4bpp => {
                 let r = r * 2;
-                //println!("{:?}", r);
-                bp1 = chunk[r + 0];
-                bp2 = chunk[r + 1];
-                bp3 = chunk[r + 16];
-                bp4 = chunk[r + 17];
+                bp1 = safe_chunk_index(chunk, r + 0);
+                bp2 = safe_chunk_index(chunk, r + 1);
+                bp3 = safe_chunk_index(chunk, r + 16);
+                bp4 = safe_chunk_index(chunk, r + 17);
             }
         }
         // translate to an array of palettes for this row
@@ -190,6 +189,13 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
     }
 
     tile
+}
+
+fn safe_chunk_index(chunk: &[u8], index: usize) -> u8 {
+    if index >= chunk.len() {
+        return 0;
+    }
+    return chunk[index];
 }
 
 // Gets a palette for a pixel at in column `c` with bitplanes 1-4
@@ -227,15 +233,7 @@ const TILES_PER_ROW: u32 = 16;
 pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
     let pixels_per_row: u32 = TILE_LENGTH * TILES_PER_ROW * scale;
 
-    println!("Writing image to file...");
-    let flattened: Vec<u8> = tiles.iter().flatten().copied().collect();
-    let flattened_len: u32 = Result::expect(
-        flattened.len().try_into(),
-        "Could not convert usize into u32",
-    );
-
-    println!("flattened len: {}", flattened_len);
-
+    println!("Writing image to {file_out}...");
     let num_tiles = tiles.len() as u32;
     let mut height: u32 = (num_tiles / TILES_PER_ROW) * TILE_LENGTH * scale;
 
@@ -244,14 +242,14 @@ pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
     }
 
     let mut image = RgbaImage::new(pixels_per_row, height);
-    println!("image details: {}x{}", image.width(), image.height());
+    println!("Image details: {}x{}", image.width(), image.height());
 
     // fill in image pixels by tile
     for (i, tile) in tiles.iter().enumerate() {
         // get tile coordinates in output image
         let tile_y = (i as u32 / TILES_PER_ROW) * TILE_LENGTH * scale;
         let tile_x = (i as u32 % TILES_PER_ROW) * TILE_LENGTH * scale;
-        println!("{}, {}", tile_y, tile_x);
+        //println!("{}, {}", tile_y, tile_x);
 
         // get pixels coordinates in output image
         for (j, pixel) in tile.iter().enumerate() {

@@ -10,7 +10,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     let path = Path::new(&config.file);
     let format = config.format;
-    let scale = 3;
+    let scale = 4;
 
     let paths = collect_paths(path)?;
     for path in paths {
@@ -40,7 +40,11 @@ fn run_file(file_path: &Path, format: Bpp, scale: u32) -> Result<(), Box<dyn Err
     if let Some(filename) = file_path.file_stem() {
         let tiles = tile::bin_to_tiles(&bin, format.clone());
         tile::print_tiles(&tiles, 8);
-        tile::write_to_file(&tiles, format!("{}.png", filename.to_string_lossy()), scale);
+        tile::write_to_file(
+            &tiles,
+            format!("in/{}.png", filename.to_string_lossy()),
+            scale,
+        );
     };
 
     Ok(())
