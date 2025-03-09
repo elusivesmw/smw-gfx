@@ -1,4 +1,4 @@
-use image::{self, GenericImageView, Rgba, RgbaImage};
+use image::{self, Rgba, RgbaImage};
 
 pub type Tile = Vec<u8>;
 
@@ -275,30 +275,57 @@ fn put_pixel_at_scale(image: &mut RgbaImage, x: u32, y: u32, color: Rgba<u8>, sc
 
 fn palette_to_rgb(p: u8) -> Rgba<u8> {
     match p {
-        0 => {
-            return Rgba([0, 0, 255, 1]);
+        0x0 => {
+            return Rgba([0, 0, 0, 0]);
         }
-        1 => {
+        0x1 => {
             return Rgba([255, 255, 255, 255]);
         }
-        2 => {
-            return Rgba([212, 212, 212, 255]);
-        }
-        3 => {
-            return Rgba([170, 170, 170, 255]);
-        }
-        4 => {
-            return Rgba([127, 127, 127, 255]);
-        }
-        5 => {
-            return Rgba([85, 85, 85, 255]);
-        }
-        6 => {
-            return Rgba([42, 42, 42, 255]);
-        }
-        7 => {
+        0x2 => {
             return Rgba([0, 0, 0, 255]);
         }
+        0x3 => {
+            return Rgba([42, 42, 42, 255]);
+        }
+        0x4 => {
+            return Rgba([85, 85, 85, 255]);
+        }
+        0x5 => {
+            return Rgba([127, 127, 127, 255]);
+        }
+        0x6 => {
+            return Rgba([170, 170, 170, 255]);
+        }
+        0x7 => {
+            return Rgba([212, 212, 212, 255]);
+        }
+
+        //
+        0x8 => {
+            return Rgba([0, 0, 0, 0]);
+        }
+        0x9 => {
+            return Rgba([255, 255, 255, 255]);
+        }
+        0xa => {
+            return Rgba([0, 0, 0, 255]);
+        }
+        0xb => {
+            return Rgba([42, 42, 42, 255]);
+        }
+        0xc => {
+            return Rgba([85, 85, 85, 255]);
+        }
+        0xd => {
+            return Rgba([127, 127, 127, 255]);
+        }
+        0xe => {
+            return Rgba([170, 170, 170, 255]);
+        }
+        0xf => {
+            return Rgba([212, 212, 212, 255]);
+        }
+
         _ => {
             return Rgba([255, 0, 0, 255]);
         }
