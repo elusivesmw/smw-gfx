@@ -1,3 +1,4 @@
+use crate::bpp::Bpp;
 use image::{self, Rgba, RgbaImage};
 
 pub type Tile = Vec<u8>;
@@ -26,7 +27,7 @@ impl TilesExt for Tiles {
     fn to_file(&self, format: Bpp) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
         for tile in self {
-            let tile_file_bytes = tile_to_file(tile, format);
+            let tile_file_bytes = tile_to_file_format(tile, format);
             //println!("{:02X?}", tile_file_bytes);
             bytes.extend(tile_file_bytes);
         }
@@ -35,7 +36,7 @@ impl TilesExt for Tiles {
     }
 }
 
-fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
+fn tile_to_file_format(tile: &Tile, format: Bpp) -> Vec<u8> {
     let bytes_per_8x8 = format.bytes_per_8x8(); // 32
     let mut tile_file_bytes = vec![0u8; bytes_per_8x8];
     let pixels_per_tile_row = 8;
@@ -96,40 +97,6 @@ fn get_pixel_bitplanes(px: &u8, c: usize, format: Bpp) -> (u8, u8, u8, u8) {
     px_bp4 |= if px & 8 == 8 { mask } else { 0 };
 
     (px_bp1, px_bp2, px_bp3, px_bp4)
-}
-
-#[derive(Debug, Copy, Clone)]
-pub enum Bpp {
-    _1bpp = 1,
-    _2bpp = 2,
-    _3bpp = 3,
-    _4bpp = 4,
-}
-
-impl Bpp {
-    pub fn new(format: String) -> Result<Bpp, &'static str> {
-        let format: u8 = format.parse().unwrap_or_default();
-        match format {
-            1 => Ok(Bpp::_1bpp),
-            2 => Ok(Bpp::_2bpp),
-            3 => Ok(Bpp::_3bpp),
-            4 => Ok(Bpp::_4bpp),
-            _ => Err("Unsupported bpp format"),
-        }
-    }
-
-    fn val(&self) -> u8 {
-        match self {
-            Bpp::_1bpp => Bpp::_1bpp as u8,
-            Bpp::_2bpp => Bpp::_2bpp as u8,
-            Bpp::_3bpp => Bpp::_3bpp as u8,
-            Bpp::_4bpp => Bpp::_4bpp as u8,
-        }
-    }
-
-    fn bytes_per_8x8(&self) -> usize {
-        self.val() as usize * 8
-    }
 }
 
 pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
@@ -275,6 +242,7 @@ fn put_pixel_at_scale(image: &mut RgbaImage, x: u32, y: u32, color: Rgba<u8>, sc
 
 fn palette_to_rgb(p: u8) -> Rgba<u8> {
     match p {
+        // first 8
         0x0 => {
             return Rgba([0, 0, 0, 0]);
         }
@@ -300,7 +268,7 @@ fn palette_to_rgb(p: u8) -> Rgba<u8> {
             return Rgba([212, 212, 212, 255]);
         }
 
-        //
+        // second 8
         0x8 => {
             return Rgba([0, 0, 0, 0]);
         }

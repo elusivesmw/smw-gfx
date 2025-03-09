@@ -1,8 +1,8 @@
-use self::tile::Bpp;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod bpp;
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -54,7 +54,7 @@ fn path_is_valid(path: &Path) -> bool {
     return false;
 }
 
-fn run_file(file_path: &Path, format: Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
+fn run_file(file_path: &Path, format: bpp::Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
     let bin = fs::read(file_path)?;
 
     if let Some(filename) = file_path.file_stem() {
@@ -72,7 +72,7 @@ fn run_file(file_path: &Path, format: Bpp, scale: u32) -> Result<(), Box<dyn Err
 
 pub struct Config {
     file: String,
-    format: tile::Bpp,
+    format: bpp::Bpp,
 }
 
 impl Config {
@@ -81,7 +81,7 @@ impl Config {
             return Err("expected file and format arguments");
         }
         let file = args[1].clone();
-        let format = tile::Bpp::new(args[2].clone())?;
+        let format = bpp::Bpp::new(args[2].clone())?;
 
         Ok(Config { file, format })
     }
@@ -96,25 +96,25 @@ mod tests {
 
     #[test]
     fn round_trip_1bpp() {
-        round_trip(tile::Bpp::_1bpp, "1bpp_test.bin");
+        round_trip(bpp::Bpp::_1bpp, "1bpp_test.bin");
     }
 
     #[test]
     fn round_trip_2bpp() {
-        round_trip(tile::Bpp::_2bpp, "2bpp_test.bin");
+        round_trip(bpp::Bpp::_2bpp, "2bpp_test.bin");
     }
 
     #[test]
     fn round_trip_3bpp() {
-        round_trip(tile::Bpp::_3bpp, "3bpp_test.bin");
+        round_trip(bpp::Bpp::_3bpp, "3bpp_test.bin");
     }
 
     #[test]
     fn round_trip_4bpp() {
-        round_trip(tile::Bpp::_4bpp, "4bpp_test.bin");
+        round_trip(bpp::Bpp::_4bpp, "4bpp_test.bin");
     }
 
-    fn round_trip(format: tile::Bpp, file_in: &str) {
+    fn round_trip(format: bpp::Bpp, file_in: &str) {
         let in_dir = "in";
         let out_dir = "tests_out";
 
