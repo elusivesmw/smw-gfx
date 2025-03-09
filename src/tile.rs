@@ -242,7 +242,7 @@ pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
     }
 
     let mut image = RgbaImage::new(pixels_per_row, height);
-    println!("Image details: {}x{}", image.width(), image.height());
+    //println!("Image details: {}x{}", image.width(), image.height());
 
     // fill in image pixels by tile
     for (i, tile) in tiles.iter().enumerate() {

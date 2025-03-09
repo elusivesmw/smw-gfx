@@ -6,8 +6,6 @@ use std::path::{Path, PathBuf};
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    println!("Reading bin file...");
-
     let path = Path::new(&config.file);
     let format = config.format;
     let scale = 4;
@@ -22,11 +20,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 fn collect_paths(path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     let mut paths = Vec::new();
-    if path.is_file() {
+    if path.is_file() && path_is_valid(path) {
         paths.push(path.to_path_buf());
     } else if path.is_dir() {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
+            if !path_is_valid(entry.path().as_path()) {
+                continue;
+            }
             paths.push(entry.path());
         }
     };
@@ -34,12 +35,31 @@ fn collect_paths(path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     Ok(paths)
 }
 
+const MAX_FILE_SIZE: u64 = 256 * 1024;
+fn path_is_valid(path: &Path) -> bool {
+    if let Some(ext) = path.extension() {
+        if ext != "bin" {
+            println!("File {path:?} is not a bin. Skipping.");
+            return false;
+        }
+        if let Ok(metadata) = fs::metadata(path) {
+            let len = metadata.len();
+            if len > MAX_FILE_SIZE {
+                println!("File {path:?} is too large {len}. Skipping.");
+                return false;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 fn run_file(file_path: &Path, format: Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
     let bin = fs::read(file_path)?;
 
     if let Some(filename) = file_path.file_stem() {
         let tiles = tile::bin_to_tiles(&bin, format.clone());
-        tile::print_tiles(&tiles, 8);
+        //tile::print_tiles(&tiles, 8);
         tile::write_to_file(
             &tiles,
             format!("in/{}.png", filename.to_string_lossy()),
