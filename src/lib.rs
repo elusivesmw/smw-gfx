@@ -19,10 +19,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn collect_paths(path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    if path.is_file() {
+        return Ok(if path_is_valid(path) {
+            vec![path.to_path_buf()]
+        } else {
+            vec![]
+        });
+    }
+
     let mut paths = Vec::new();
-    if path.is_file() && path_is_valid(path) {
-        paths.push(path.to_path_buf());
-    } else if path.is_dir() {
+    if path.is_dir() {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             if !path_is_valid(entry.path().as_path()) {
@@ -37,21 +43,36 @@ fn collect_paths(path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
 
 const MAX_FILE_SIZE: u64 = 256 * 1024;
 fn path_is_valid(path: &Path) -> bool {
-    if let Some(ext) = path.extension() {
-        if ext != "bin" {
-            println!("File {path:?} is not a bin. Skipping.");
+    let ext = match path.extension() {
+        Some(ext) => ext,
+        None => {
+            println!("File {path:?} has no extension. Skipping.");
             return false;
         }
-        if let Ok(metadata) = fs::metadata(path) {
-            let len = metadata.len();
-            if len > MAX_FILE_SIZE {
-                println!("File {path:?} is too large {len}. Skipping.");
-                return false;
-            }
-            return true;
-        }
+    };
+
+    if ext != "bin" {
+        println!("File {path:?} is not a bin. Skipping.");
+        return false;
     }
-    return false;
+
+    let metadata = match fs::metadata(path) {
+        Ok(m) => m,
+        Err(_) => {
+            println!("File {path:?}, cannot get metadata. Skipping.");
+            return false;
+        }
+    };
+
+    let len = metadata.len();
+    if len > MAX_FILE_SIZE {
+        println!(
+            "File {path:?}, of size {len}B, is too large (max of {MAX_FILE_SIZE}B). Skipping."
+        );
+        return false;
+    }
+
+    return true;
 }
 
 fn run_file(file_path: &Path, format: bpp::Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
