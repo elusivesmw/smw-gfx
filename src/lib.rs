@@ -75,17 +75,23 @@ fn path_is_valid(path: &Path) -> bool {
     return true;
 }
 
+const TILES_PER_ROW: usize = 16;
+const PX_WIDTH: usize = 1;
+const PRINT_SPACE: bool = false;
+
 fn run_file(file_path: &Path, format: bpp::Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
     let bin = fs::read(file_path)?;
 
     if let Some(filename) = file_path.file_stem() {
         let tiles = tile::bin_to_tiles(&bin, format.clone());
-        //tile::print_tiles(&tiles, 8);
+        tile::print_tiles(&tiles, TILES_PER_ROW, PX_WIDTH, PRINT_SPACE);
+        /*
         tile::write_to_file(
             &tiles,
             format!("in/{}.png", filename.to_string_lossy()),
             scale,
         );
+        */
     };
 
     Ok(())

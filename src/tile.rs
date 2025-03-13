@@ -39,9 +39,9 @@ impl TilesExt for Tiles {
 fn tile_to_file_format(tile: &Tile, format: Bpp) -> Vec<u8> {
     let bytes_per_8x8 = format.bytes_per_8x8(); // 32
     let mut tile_file_bytes = vec![0u8; bytes_per_8x8];
-    let pixels_per_tile_row = 8;
+    const PIXELS_PER_TILE_ROW: usize = 8;
 
-    for (r, row) in tile.chunks(pixels_per_tile_row).enumerate() {
+    for (r, row) in tile.chunks(PIXELS_PER_TILE_ROW).enumerate() {
         let mut row_bps = (0, 0, 0, 0);
         //println!("{:?}", row);
 
@@ -165,7 +165,7 @@ fn safe_chunk_index(chunk: &[u8], index: usize) -> u8 {
     return chunk[index];
 }
 
-// Gets a palette for a pixel at in column `c` with bitplanes 1-4
+/// Gets a palette for a pixel at in column `c` with bitplanes 1-4
 fn get_pixel_palette(c: u8, bp1: u8, bp2: u8, bp3: u8, bp4: u8) -> u8 {
     let mask = 1 << c;
 
@@ -179,15 +179,23 @@ fn get_pixel_palette(c: u8, bp1: u8, bp2: u8, bp3: u8, bp4: u8) -> u8 {
     palette
 }
 
-pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
+/// Prints tiles to stdout, for preview.
+///
+/// * `tiles` - The tile data to print
+/// * `tiles_per_row` - The number of tiles to print per row (16 or 8 recommended)
+/// * `px_width` - The number of characters to print per pixel (1 or 2 recommended)
+/// * `print_space` - Whether or not to print a space between tiles
+pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize, px_width: usize, print_space: bool) {
     for row in tiles.chunks(tiles_per_row) {
         for py in 0..8 {
             for tile in row.iter() {
                 for px in 0..8 {
                     let p = &tile.get(px, py);
-                    print_palette_to_ansi(p);
+                    print_palette_to_ansi(p, px_width);
                 }
-                print!(" ");
+                if print_space {
+                    print!(" ");
+                }
             }
             println!();
         }
@@ -300,38 +308,40 @@ fn palette_to_rgb(p: u8) -> Rgba<u8> {
     }
 }
 
-fn print_palette_to_ansi(p: &u8) {
+fn print_palette_to_ansi(p: &u8, width: usize) {
     // ANSI colors
     // 0 blue (for transparency)
     // 1 white
     // 2->7 black->lightgrey
+    let ps = format!("{:x}", p).to_string();
+    let pw = std::iter::repeat(ps).take(width).collect::<String>();
     match p {
-        0 => {
-            print!("\x1b[48;5;{}m{}{}", 18, p, p);
+        0x0 | 0x8 => {
+            print!("\x1b[48;5;{}m{}", 18, pw);
         }
-        1 => {
-            print!("\x1b[48;5;{}m\x1b[38;5;{}m{}{}", 255, 232, p, p);
+        0x1 | 0x9 => {
+            print!("\x1b[48;5;{}m\x1b[38;5;{}m{}", 255, 232, pw);
         }
-        2 => {
-            print!("\x1b[48;5;{}m{}{}", 232, p, p);
+        0x2 | 0xa => {
+            print!("\x1b[48;5;{}m{}", 232, pw);
         }
-        3 => {
-            print!("\x1b[48;5;{}m{}{}", 243, p, p);
+        0x3 | 0xb => {
+            print!("\x1b[48;5;{}m{}", 243, pw);
         }
-        4 => {
-            print!("\x1b[48;5;{}m{}{}", 246, p, p);
+        0x4 | 0xc => {
+            print!("\x1b[48;5;{}m{}", 246, pw);
         }
-        5 => {
-            print!("\x1b[48;5;{}m{}{}", 243, p, p);
+        0x5 | 0xd => {
+            print!("\x1b[48;5;{}m{}", 243, pw);
         }
-        6 => {
-            print!("\x1b[48;5;{}m{}{}", 249, p, p);
+        0x6 | 0xe => {
+            print!("\x1b[48;5;{}m{}", 249, pw);
         }
-        7 => {
-            print!("\x1b[48;5;{}m{}{}", 252, p, p);
+        0x7 | 0xf => {
+            print!("\x1b[48;5;{}m{}", 252, pw);
         }
         _ => {
-            print!("{:x}{:x}", p, p);
+            print!("{}", pw);
         }
     }
     // reset colors
