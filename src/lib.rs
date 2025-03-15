@@ -9,10 +9,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let path = Path::new(&config.file);
     let format = config.format;
     let scale = 4;
+    let print = false;
 
     let paths = collect_paths(path)?;
     for path in paths {
-        run_file(path.as_path(), format, scale)?;
+        run_file(path.as_path(), format, scale, print)?;
     }
 
     Ok(())
@@ -79,20 +80,36 @@ const TILES_PER_ROW: usize = 16;
 const PX_WIDTH: usize = 1;
 const PRINT_SPACE: bool = false;
 
-fn run_file(file_path: &Path, format: bpp::Bpp, scale: u32) -> Result<(), Box<dyn Error>> {
+fn run_file(
+    file_path: &Path,
+    format: bpp::Bpp,
+    scale: u32,
+    print: bool,
+) -> Result<(), Box<dyn Error>> {
     let bin = fs::read(file_path)?;
+    let tiles = tile::bin_to_tiles(&bin, format.clone());
 
-    if let Some(filename) = file_path.file_stem() {
-        let tiles = tile::bin_to_tiles(&bin, format.clone());
+    if print {
         tile::print_tiles(&tiles, TILES_PER_ROW, PX_WIDTH, PRINT_SPACE);
-        /*
-        tile::write_to_file(
-            &tiles,
-            format!("in/{}.png", filename.to_string_lossy()),
-            scale,
-        );
-        */
+    }
+
+    let filename = match file_path.file_stem() {
+        Some(f) => f,
+        None => {
+            println!("Could not get filename of path {file_path:?}");
+            return Ok(());
+        }
     };
+
+    // consider keeping the String path as a &Path or PathBuf
+    let pwd = file_path.parent().unwrap_or(Path::new(""));
+    let out_path = format!(
+        "{}/{}.png",
+        pwd.to_string_lossy(),
+        filename.to_string_lossy()
+    );
+
+    tile::write_to_file(&tiles, out_path, scale);
 
     Ok(())
 }
