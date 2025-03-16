@@ -159,8 +159,8 @@ mod tests {
     }
 
     fn round_trip(format: bpp::Bpp, file_in: &str) {
-        let in_dir = "in";
-        let out_dir = "tests_out";
+        let in_dir = "tests/in";
+        let out_dir = "tests/out";
 
         fs::create_dir_all(out_dir).unwrap();
         let in_path: PathBuf = [in_dir, file_in].iter().collect();
