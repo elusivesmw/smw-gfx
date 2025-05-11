@@ -1,5 +1,6 @@
 use crate::bpp::Bpp;
 use image::{self, Rgba, RgbaImage};
+use log::{info, warn};
 
 pub type Tile = Vec<u8>;
 
@@ -43,7 +44,7 @@ fn tile_to_file_format(tile: &Tile, format: Bpp) -> Vec<u8> {
 
     for (r, row) in tile.chunks(PIXELS_PER_TILE_ROW).enumerate() {
         let mut row_bps = (0, 0, 0, 0);
-        //println!("{:?}", row);
+        println!("{:?}", row);
 
         for (c, px) in row.iter().rev().enumerate() {
             let px_bps = get_pixel_bitplanes(px, c, format);
@@ -52,7 +53,7 @@ fn tile_to_file_format(tile: &Tile, format: Bpp) -> Vec<u8> {
             row_bps.2 |= px_bps.2;
             row_bps.3 |= px_bps.3;
         }
-        //println!("{:?}", (row_bps.0, row_bps.1, row_bps.2, row_bps.3));
+        println!("{:?}", (row_bps.0, row_bps.1, row_bps.2, row_bps.3));
 
         match format {
             Bpp::_1bpp => {
@@ -104,7 +105,7 @@ pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
     let mut tiles: Vec<Tile> = Vec::new();
     for chunk in bin.chunks(size) {
         if chunk.len() < size {
-            println!("Warning: Unexpected file length.");
+            warn!("Unexpected file length.");
             //break; // NOTE: handled in safe_chunk_index() now
         }
         let tile = chunk_to_tile(&chunk, format);
@@ -208,7 +209,7 @@ const TILES_PER_ROW: u32 = 16;
 pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
     let pixels_per_row: u32 = TILE_LENGTH * TILES_PER_ROW * scale;
 
-    println!("Writing image to {file_out}...");
+    info!("Writing image to {file_out}...");
     let num_tiles = tiles.len() as u32;
     let mut height: u32 = (num_tiles / TILES_PER_ROW) * TILE_LENGTH * scale;
 
