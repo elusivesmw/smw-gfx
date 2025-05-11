@@ -1,3 +1,4 @@
+use log::{trace, warn};
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -47,29 +48,27 @@ fn path_is_valid(path: &Path) -> bool {
     let ext = match path.extension() {
         Some(ext) => ext,
         None => {
-            println!("File {path:?} has no extension. Skipping.");
+            trace!("File {path:?} has no extension. Skipping.");
             return false;
         }
     };
 
     if ext != "bin" {
-        println!("File {path:?} is not a bin. Skipping.");
+        trace!("File {path:?} is not a bin. Skipping.");
         return false;
     }
 
     let metadata = match fs::metadata(path) {
         Ok(m) => m,
         Err(_) => {
-            println!("File {path:?}, cannot get metadata. Skipping.");
+            trace!("File {path:?}, cannot get metadata. Skipping.");
             return false;
         }
     };
 
     let len = metadata.len();
     if len > MAX_FILE_SIZE {
-        println!(
-            "File {path:?}, of size {len}B, is too large (max of {MAX_FILE_SIZE}B). Skipping."
-        );
+        warn!("File {path:?}, of size {len}B, is too large (max of {MAX_FILE_SIZE}B). Skipping.");
         return false;
     }
 

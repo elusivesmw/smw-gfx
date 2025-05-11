@@ -1,2 +1,5 @@
 /target
+/tests/in/*
+!/test/in/*.bin
 /tests/out
+/.log
