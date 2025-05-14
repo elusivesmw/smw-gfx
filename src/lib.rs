@@ -1,25 +1,122 @@
-use std::fs;
 use std::error::Error;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+mod bpp;
 mod tile;
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    println!("Reading bin file...");
-
-    let path = config.file;
+    let path = Path::new(&config.file);
     let format = config.format;
-    let bin = fs::read(path)?;
+    let scale = 4;
+    let print = false;
 
-    let tiles = tile::bin_to_tiles(&bin, format.clone());
-    tile::print_tiles(&tiles, 16);
+    let paths = collect_paths(path)?;
+    for path in paths {
+        run_file(path.as_path(), format, scale, print)?;
+    }
 
     Ok(())
 }
 
+fn collect_paths(path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    if path.is_file() {
+        return Ok(if path_is_valid(path) {
+            vec![path.to_path_buf()]
+        } else {
+            vec![]
+        });
+    }
 
+    let mut paths = Vec::new();
+    if path.is_dir() {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            if !path_is_valid(entry.path().as_path()) {
+                continue;
+            }
+            paths.push(entry.path());
+        }
+    };
+
+    Ok(paths)
+}
+
+const MAX_FILE_SIZE: u64 = 256 * 1024;
+fn path_is_valid(path: &Path) -> bool {
+    let ext = match path.extension() {
+        Some(ext) => ext,
+        None => {
+            println!("File {path:?} has no extension. Skipping.");
+            return false;
+        }
+    };
+
+    if ext != "bin" {
+        println!("File {path:?} is not a bin. Skipping.");
+        return false;
+    }
+
+    let metadata = match fs::metadata(path) {
+        Ok(m) => m,
+        Err(_) => {
+            println!("File {path:?}, cannot get metadata. Skipping.");
+            return false;
+        }
+    };
+
+    let len = metadata.len();
+    if len > MAX_FILE_SIZE {
+        println!(
+            "File {path:?}, of size {len}B, is too large (max of {MAX_FILE_SIZE}B). Skipping."
+        );
+        return false;
+    }
+
+    return true;
+}
+
+const TILES_PER_ROW: usize = 16;
+const PX_WIDTH: usize = 1;
+const PRINT_SPACE: bool = false;
+
+fn run_file(
+    file_path: &Path,
+    format: bpp::Bpp,
+    scale: u32,
+    print: bool,
+) -> Result<(), Box<dyn Error>> {
+    let bin = fs::read(file_path)?;
+    let tiles = tile::bin_to_tiles(&bin, format.clone());
+
+    if print {
+        tile::print_tiles(&tiles, TILES_PER_ROW, PX_WIDTH, PRINT_SPACE);
+    }
+
+    let filename = match file_path.file_stem() {
+        Some(f) => f,
+        None => {
+            println!("Could not get filename of path {file_path:?}");
+            return Ok(());
+        }
+    };
+
+    // consider keeping the String path as a &Path or PathBuf
+    let pwd = file_path.parent().unwrap_or(Path::new(""));
+    let out_path = format!(
+        "{}/{}.png",
+        pwd.to_string_lossy(),
+        filename.to_string_lossy()
+    );
+
+    tile::write_to_file(&tiles, out_path, scale);
+
+    Ok(())
+}
 
 pub struct Config {
     file: String,
-    format: tile::Bpp,
+    format: bpp::Bpp,
 }
 
 impl Config {
@@ -28,7 +125,7 @@ impl Config {
             return Err("expected file and format arguments");
         }
         let file = args[1].clone();
-        let format = tile::Bpp::new(args[2].clone())?;
+        let format = bpp::Bpp::new(args[2].clone())?;
 
         Ok(Config { file, format })
     }
@@ -43,27 +140,27 @@ mod tests {
 
     #[test]
     fn round_trip_1bpp() {
-        round_trip(tile::Bpp::_1bpp, "1bpp_test.bin");
+        round_trip(bpp::Bpp::_1bpp, "1bpp_test.bin");
     }
 
     #[test]
     fn round_trip_2bpp() {
-        round_trip(tile::Bpp::_2bpp, "2bpp_test.bin");
+        round_trip(bpp::Bpp::_2bpp, "2bpp_test.bin");
     }
 
     #[test]
     fn round_trip_3bpp() {
-        round_trip(tile::Bpp::_3bpp, "3bpp_test.bin");
+        round_trip(bpp::Bpp::_3bpp, "3bpp_test.bin");
     }
 
     #[test]
     fn round_trip_4bpp() {
-        round_trip(tile::Bpp::_4bpp, "4bpp_test.bin");
+        round_trip(bpp::Bpp::_4bpp, "4bpp_test.bin");
     }
 
-    fn round_trip(format: tile::Bpp, file_in: &str) {
-        let in_dir = "in";
-        let out_dir = "tests_out";
+    fn round_trip(format: bpp::Bpp, file_in: &str) {
+        let in_dir = "tests/in";
+        let out_dir = "tests/out";
 
         fs::create_dir_all(out_dir).unwrap();
         let in_path: PathBuf = [in_dir, file_in].iter().collect();

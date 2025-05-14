@@ -1,3 +1,6 @@
+use crate::bpp::Bpp;
+use image::{self, Rgba, RgbaImage};
+
 pub type Tile = Vec<u8>;
 
 pub trait TileExt {
@@ -24,7 +27,7 @@ impl TilesExt for Tiles {
     fn to_file(&self, format: Bpp) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
         for tile in self {
-            let tile_file_bytes = tile_to_file(tile, format);
+            let tile_file_bytes = tile_to_file_format(tile, format);
             //println!("{:02X?}", tile_file_bytes);
             bytes.extend(tile_file_bytes);
         }
@@ -33,12 +36,12 @@ impl TilesExt for Tiles {
     }
 }
 
-fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
+fn tile_to_file_format(tile: &Tile, format: Bpp) -> Vec<u8> {
     let bytes_per_8x8 = format.bytes_per_8x8(); // 32
     let mut tile_file_bytes = vec![0u8; bytes_per_8x8];
-    let pixels_per_tile_row = 8;
+    const PIXELS_PER_TILE_ROW: usize = 8;
 
-    for (r, row) in tile.chunks(pixels_per_tile_row).enumerate() {
+    for (r, row) in tile.chunks(PIXELS_PER_TILE_ROW).enumerate() {
         let mut row_bps = (0, 0, 0, 0);
         //println!("{:?}", row);
 
@@ -56,19 +59,19 @@ fn tile_to_file(tile: &Tile, format: Bpp) -> Vec<u8> {
                 tile_file_bytes[r] = row_bps.0;
             }
             Bpp::_2bpp => {
-                tile_file_bytes[r*2 + 0] = row_bps.0;
-                tile_file_bytes[r*2 + 1] = row_bps.1;
+                tile_file_bytes[r * 2 + 0] = row_bps.0;
+                tile_file_bytes[r * 2 + 1] = row_bps.1;
             }
             Bpp::_3bpp => {
-                tile_file_bytes[r*2 + 0] = row_bps.0;
-                tile_file_bytes[r*2 + 1] = row_bps.1;
+                tile_file_bytes[r * 2 + 0] = row_bps.0;
+                tile_file_bytes[r * 2 + 1] = row_bps.1;
                 tile_file_bytes[16 + r] = row_bps.2;
             }
             Bpp::_4bpp => {
-                tile_file_bytes[r*2 + 0] = row_bps.0;
-                tile_file_bytes[r*2 + 1] = row_bps.1;
-                tile_file_bytes[r*2 + 16] = row_bps.2;
-                tile_file_bytes[r*2 + 17] = row_bps.3;
+                tile_file_bytes[r * 2 + 0] = row_bps.0;
+                tile_file_bytes[r * 2 + 1] = row_bps.1;
+                tile_file_bytes[r * 2 + 16] = row_bps.2;
+                tile_file_bytes[r * 2 + 17] = row_bps.3;
             }
         }
     }
@@ -96,46 +99,14 @@ fn get_pixel_bitplanes(px: &u8, c: usize, format: Bpp) -> (u8, u8, u8, u8) {
     (px_bp1, px_bp2, px_bp3, px_bp4)
 }
 
-
-#[derive(Debug,Copy,Clone)]
-pub enum Bpp {
-    _1bpp = 1,
-    _2bpp = 2,
-    _3bpp = 3,
-    _4bpp = 4,
-}
-
-impl Bpp {
-    pub fn new(format: String) -> Result<Bpp, &'static str> {
-        let format: u8 = format.parse().unwrap_or_default();
-        match format {
-            1 => { Ok(Bpp::_1bpp) }
-            2 => { Ok(Bpp::_2bpp) }
-            3 => { Ok(Bpp::_3bpp) }
-            4 => { Ok(Bpp::_4bpp) }
-            _ => { Err("Unsupported bpp format") }
-        }
-    }
-
-    fn val (&self) -> u8 {
-        match self {
-            Bpp::_1bpp => { Bpp::_1bpp as u8 }
-            Bpp::_2bpp => { Bpp::_2bpp as u8 }
-            Bpp::_3bpp => { Bpp::_3bpp as u8 }
-            Bpp::_4bpp => { Bpp::_4bpp as u8 }
-        }
-    }
-
-    fn bytes_per_8x8(&self) -> usize {
-        self.val() as usize * 8
-    }
-}
-
 pub fn bin_to_tiles(bin: &Vec<u8>, format: Bpp) -> Vec<Tile> {
     let size = format.bytes_per_8x8();
     let mut tiles: Vec<Tile> = Vec::new();
     for chunk in bin.chunks(size) {
-        if chunk.len() < size { println!("Warning: Unexpected file length"); break; }
+        if chunk.len() < size {
+            println!("Warning: Unexpected file length.");
+            //break; // NOTE: handled in safe_chunk_index() now
+        }
         let tile = chunk_to_tile(&chunk, format);
 
         //print_tile(&tile);
@@ -157,25 +128,24 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
     for r in 0..8 {
         match bpp {
             Bpp::_1bpp => {
-                bp1 = chunk[r];
+                bp1 = safe_chunk_index(chunk, r);
             }
             Bpp::_2bpp => {
                 let r = r * 2;
-                bp1 = chunk[r + 0];
-                bp2 = chunk[r + 1];
+                bp1 = safe_chunk_index(chunk, r + 0);
+                bp2 = safe_chunk_index(chunk, r + 1);
             }
             Bpp::_3bpp => {
-                bp1 = chunk[r*2 + 0];
-                bp2 = chunk[r*2 + 1];
-                bp3 = chunk[16 + r];
+                bp1 = safe_chunk_index(chunk, r * 2 + 0);
+                bp2 = safe_chunk_index(chunk, r * 2 + 1);
+                bp3 = safe_chunk_index(chunk, 16 + r);
             }
             Bpp::_4bpp => {
                 let r = r * 2;
-                //println!("{:?}", r);
-                bp1 = chunk[r + 0];
-                bp2 = chunk[r + 1];
-                bp3 = chunk[r + 16];
-                bp4 = chunk[r + 17];
+                bp1 = safe_chunk_index(chunk, r + 0);
+                bp2 = safe_chunk_index(chunk, r + 1);
+                bp3 = safe_chunk_index(chunk, r + 16);
+                bp4 = safe_chunk_index(chunk, r + 17);
             }
         }
         // translate to an array of palettes for this row
@@ -188,8 +158,15 @@ pub fn chunk_to_tile(chunk: &[u8], bpp: Bpp) -> Tile {
     tile
 }
 
+fn safe_chunk_index(chunk: &[u8], index: usize) -> u8 {
+    if index >= chunk.len() {
+        return 0;
+    }
+    return chunk[index];
+}
+
 /// Gets a palette for a pixel at in column `c` with bitplanes 1-4
-fn get_pixel_palette (c: u8, bp1: u8, bp2: u8 , bp3: u8, bp4: u8) -> u8 {
+fn get_pixel_palette(c: u8, bp1: u8, bp2: u8, bp3: u8, bp4: u8) -> u8 {
     let mask = 1 << c;
 
     let px_bp1 = if (bp1 & mask) == mask { 1 } else { 0 };
@@ -202,38 +179,171 @@ fn get_pixel_palette (c: u8, bp1: u8, bp2: u8 , bp3: u8, bp4: u8) -> u8 {
     palette
 }
 
-pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize) {
+/// Prints tiles to stdout, for preview.
+///
+/// * `tiles` - The tile data to print
+/// * `tiles_per_row` - The number of tiles to print per row (16 or 8 recommended)
+/// * `px_width` - The number of characters to print per pixel (1 or 2 recommended)
+/// * `print_space` - Whether or not to print a space between tiles
+pub fn print_tiles(tiles: &Vec<Tile>, tiles_per_row: usize, px_width: usize, print_space: bool) {
     for row in tiles.chunks(tiles_per_row) {
         for py in 0..8 {
             for tile in row.iter() {
                 for px in 0..8 {
                     let p = &tile.get(px, py);
-                    palette_to_color(p);
+                    print_palette_to_ansi(p, px_width);
                 }
-                print!(" ");
+                if print_space {
+                    print!(" ");
+                }
             }
             println!();
         }
     }
 }
 
-fn palette_to_color(p: &u8) {
+const TILE_LENGTH: u32 = 8;
+const TILES_PER_ROW: u32 = 16;
+
+pub fn write_to_file(tiles: &Vec<Tile>, file_out: String, scale: u32) {
+    let pixels_per_row: u32 = TILE_LENGTH * TILES_PER_ROW * scale;
+
+    println!("Writing image to {file_out}...");
+    let num_tiles = tiles.len() as u32;
+    let mut height: u32 = (num_tiles / TILES_PER_ROW) * TILE_LENGTH * scale;
+
+    if num_tiles % TILES_PER_ROW > 0 {
+        height += TILE_LENGTH * scale;
+    }
+
+    let mut image = RgbaImage::new(pixels_per_row, height);
+    //println!("Image details: {}x{}", image.width(), image.height());
+
+    // fill in image pixels by tile
+    for (i, tile) in tiles.iter().enumerate() {
+        // get tile coordinates in output image
+        let tile_y = (i as u32 / TILES_PER_ROW) * TILE_LENGTH * scale;
+        let tile_x = (i as u32 % TILES_PER_ROW) * TILE_LENGTH * scale;
+        //println!("{}, {}", tile_y, tile_x);
+
+        // get pixels coordinates in output image
+        for (j, pixel) in tile.iter().enumerate() {
+            let pixel_y = tile_y + j as u32 / TILE_LENGTH * scale;
+            let pixel_x = tile_x + j as u32 % TILE_LENGTH * scale;
+
+            let pixel_color = palette_to_rgb(*pixel);
+            put_pixel_at_scale(&mut image, pixel_x, pixel_y, pixel_color, scale);
+        }
+    }
+
+    image.save(file_out).expect("Failed to save image");
+}
+
+fn put_pixel_at_scale(image: &mut RgbaImage, x: u32, y: u32, color: Rgba<u8>, scale: u32) {
+    // account for scale
+    for i in 0..scale {
+        for j in 0..scale {
+            image.put_pixel(x + j, y + i, color);
+        }
+    }
+}
+
+fn palette_to_rgb(p: u8) -> Rgba<u8> {
+    match p {
+        // first 8
+        0x0 => {
+            return Rgba([0, 0, 0, 0]);
+        }
+        0x1 => {
+            return Rgba([255, 255, 255, 255]);
+        }
+        0x2 => {
+            return Rgba([0, 0, 0, 255]);
+        }
+        0x3 => {
+            return Rgba([42, 42, 42, 255]);
+        }
+        0x4 => {
+            return Rgba([85, 85, 85, 255]);
+        }
+        0x5 => {
+            return Rgba([127, 127, 127, 255]);
+        }
+        0x6 => {
+            return Rgba([170, 170, 170, 255]);
+        }
+        0x7 => {
+            return Rgba([212, 212, 212, 255]);
+        }
+
+        // second 8
+        0x8 => {
+            return Rgba([0, 0, 0, 0]);
+        }
+        0x9 => {
+            return Rgba([255, 255, 255, 255]);
+        }
+        0xa => {
+            return Rgba([0, 0, 0, 255]);
+        }
+        0xb => {
+            return Rgba([42, 42, 42, 255]);
+        }
+        0xc => {
+            return Rgba([85, 85, 85, 255]);
+        }
+        0xd => {
+            return Rgba([127, 127, 127, 255]);
+        }
+        0xe => {
+            return Rgba([170, 170, 170, 255]);
+        }
+        0xf => {
+            return Rgba([212, 212, 212, 255]);
+        }
+
+        _ => {
+            return Rgba([255, 0, 0, 255]);
+        }
+    }
+}
+
+fn print_palette_to_ansi(p: &u8, width: usize) {
     // ANSI colors
     // 0 blue (for transparency)
     // 1 white
     // 2->7 black->lightgrey
+    let ps = format!("{:x}", p).to_string();
+    let pw = std::iter::repeat(ps).take(width).collect::<String>();
     match p {
-        0 => { print!("\x1b[48;5;{}m{}{}", 18, p, p); }
-        1 => { print!("\x1b[48;5;{}m\x1b[38;5;{}m{}{}", 255, 232, p, p); }
-        2 => { print!("\x1b[48;5;{}m{}{}", 232, p, p); }
-        3 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
-        4 => { print!("\x1b[48;5;{}m{}{}", 246, p, p); }
-        5 => { print!("\x1b[48;5;{}m{}{}", 243, p, p); }
-        6 => { print!("\x1b[48;5;{}m{}{}", 249, p, p); }
-        7 => { print!("\x1b[48;5;{}m{}{}", 252, p, p); }
-        _ => { print!("{:x}{:x}", p, p); }
+        0x0 | 0x8 => {
+            print!("\x1b[48;5;{}m{}", 18, pw);
+        }
+        0x1 | 0x9 => {
+            print!("\x1b[48;5;{}m\x1b[38;5;{}m{}", 255, 232, pw);
+        }
+        0x2 | 0xa => {
+            print!("\x1b[48;5;{}m{}", 232, pw);
+        }
+        0x3 | 0xb => {
+            print!("\x1b[48;5;{}m{}", 243, pw);
+        }
+        0x4 | 0xc => {
+            print!("\x1b[48;5;{}m{}", 246, pw);
+        }
+        0x5 | 0xd => {
+            print!("\x1b[48;5;{}m{}", 243, pw);
+        }
+        0x6 | 0xe => {
+            print!("\x1b[48;5;{}m{}", 249, pw);
+        }
+        0x7 | 0xf => {
+            print!("\x1b[48;5;{}m{}", 252, pw);
+        }
+        _ => {
+            print!("{}", pw);
+        }
     }
     // reset colors
     print!("\x1b[0m");
 }
-
