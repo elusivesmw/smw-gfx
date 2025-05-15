@@ -1,6 +1,6 @@
+use smw_gfx::Config;
 use std::env;
 use std::process;
-use smw_gfx::Config;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -14,4 +14,3 @@ fn main() {
         process::exit(1);
     }
 }
-
